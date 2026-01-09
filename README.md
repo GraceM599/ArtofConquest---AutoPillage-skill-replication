@@ -21,11 +21,13 @@ To extend functionality to other enemies/tasks use the 'getScreenshots()' functi
 
 
 #### File Structure
+```
 ArtofConquest---AutoPillage-skill-replication/
 ├── images/               # Screenshots and templates
 ├── AOCbot.py             # Main script
 ├── requirements.txt      # Python dependencies
-└── README.md               
+└── README.md
+```
 
 
 #### Disclaimer
