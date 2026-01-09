@@ -16,6 +16,56 @@ os.makedirs("images", exist_ok=True)
 screenshot_path = "images/aoc_image.png"
 template_path = "images/game_screen.png"
 
+
+#Prototyping assistance functions
+def getScreenshots():
+    """
+    For collecting templates of game elements.
+    :return: None
+    """
+    with mss.mss() as sct:
+        monitor = {"top": top, "left": left, "width": width, "height": height}
+        count = 0
+        while not (keyboard.is_pressed("q")):
+            if(keyboard.is_pressed("c")):
+                count += 1
+                img = sct.grab(monitor)
+                mss.tools.to_png(img.rgb, img.size, output= str("images/game_screen_" + str(count)))
+                print("Saved screenshot!")
+def tester():
+    """
+    Tests if the template can be detected in the image.
+    :return: None
+    """
+
+    screenshot = cv2.imread(screenshot_path)
+    template = cv2.imread(template_path)
+
+    if screenshot is None or template is None:
+        raise Exception("Failed to load screenshot or template")
+
+    screenshot_gray = cv2.cvtColor(screenshot, cv2.COLOR_BGR2GRAY)
+    template_gray = cv2.cvtColor(template, cv2.COLOR_BGR2GRAY)
+
+    res = cv2.matchTemplate(screenshot_gray, template_gray, cv2.TM_CCOEFF_NORMED)
+    min_val, max_val, min_loc, max_loc = cv2.minMaxLoc(res)
+    print(f"Max confidence: {max_val}")
+
+    threshold = 0.5
+
+    if max_val >= threshold:
+        top_left = max_loc
+        h, w = template_gray.shape
+        bottom_right = (top_left[0] + w, top_left[1] + h)
+        cv2.rectangle(screenshot, top_left, bottom_right, (0, 255, 0), 2)
+        cv2.imshow("Identifications", screenshot)
+        cv2.waitKey(0)
+        cv2.destroyAllWindows()
+    else:
+        print("Template not found")
+
+
+#Helper functions for game actions
 def setupScreen():
     """Find and resize BlueStacks window, update global coordinates, save initial screenshot."""
     if not os.path.isfile(template_path):
@@ -68,8 +118,6 @@ def setupScreen():
     # Move/resize window
     x, y = window_rect[0], window_rect[1]
     win32gui.MoveWindow(hwnd, x, y, new_width, new_height, True)
-
-
 def getUIElement(element):
     """returns screen-based information of an element that is possibly in the screenshot_path"""
 
@@ -98,8 +146,6 @@ def getUIElement(element):
         "center": center,
         "shape": (w, h)
     }
-
-#returns the location of all matched UI elements on screen
 def getAllUIElementsLocation(element):
 
     img = getScreen()
@@ -126,7 +172,6 @@ def getAllUIElementsLocation(element):
         points.append((screen_cx, screen_cy))
     print(str(points[0][0]))
     return points
-
 def clickButton(button):
     """Pauses until the 'button' image is located and clicks it once it is located"""
     button_info = getUIElement(button)
@@ -140,8 +185,6 @@ def clickButton(button):
             return
     time.sleep(.3)
     pyautogui.click(button_info["center"])
-
-
 def getScreen():
     """Captures the current screen of the bluestacks window and returns it"""
     with mss.mss() as sct:
@@ -151,7 +194,6 @@ def getScreen():
 
     img = np.array(img)
     return img
-
 def isMoving():
     """
     While player is in motion the game generates blue dots underneath the character.
@@ -174,6 +216,7 @@ def isMoving():
     return True
 
 
+#Screen interacting functions
 def tentativeClick():
     """
     The game locks up ocassionaly, function clicks at the center of the game window
@@ -182,7 +225,6 @@ def tentativeClick():
     """
     hwnd = win32gui.FindWindow(None, "BlueStacks App Player")
     pyautogui.click(win32gui.ClientToScreen(hwnd, (814, 342)))
-
 def clearDungeon():
     """
     Carries out the ingame actions to clear a single dungeon
@@ -220,8 +262,6 @@ def clearDungeon():
 
 
     return True
-
-
 def attackGolem(golem_type):
     """
     Unused as of now but detects a golem_type golem on the screen
@@ -241,7 +281,6 @@ def attackGolem(golem_type):
     clickButton("green_fight_button")
     while (getUIElement("castle_button")["confidence"] < 0.8):
         clickButton("green_okay_button")
-
 def deliverWagon():
     clickButton("map_button")
     clickButton("resource_marker")
@@ -256,7 +295,6 @@ def deliverWagon():
         tentativeClick()
         time.sleep(0.2)
     clickButton("deliver_button")
-
 def autoPillage():
     """
     Replicates the auto-pillage skill granted by Lifetime Patron in the game.
@@ -269,68 +307,10 @@ def autoPillage():
     for i in range (4):
         clearDungeon()
         time.sleep(1)
-
-
 def farmGolems():
     if (getUIElement("purple_golem")["confidence"] > 0.90):
         attackGolem("purple_golem")
     if (getUIElement("grey_golem")["confidence"] > 0.90):
         attackGolem("purple_golem")
-#with mss.mss() as sct:
-#    monitor = {"top": top, "left": left, "width": width, "height": height}
-#    count = 0
-#    while not (keyboard.is_pressed("q")):
-#        if(keyboard.is_pressed("c")):
-#            count += 1
-#            img = sct.grab(monitor)
-#            mss.tools.to_png(img.rgb, img.size, output= str("images/game_screen_" + str(count)))
-#            print("Saved screenshot!")
-def getScreenshots():
-    with mss.mss() as sct:
-        monitor = {"top": top, "left": left, "width": width, "height": height}
-        count = 0
-        while not (keyboard.is_pressed("q")):
-            if(keyboard.is_pressed("c")):
-                count += 1
-                img = sct.grab(monitor)
-                mss.tools.to_png(img.rgb, img.size, output= str("images/game_screen_" + str(count)))
-                print("Saved screenshot!")
-def tester():
-
-    print(f"Saved BlueStacks capture to {screenshot_path}")
-
-    screenshot = cv2.imread(screenshot_path)
-    template = cv2.imread(template_path)
-
-    if screenshot is None or template is None:
-        raise Exception("Failed to load screenshot or template")
-
-    screenshot_gray = cv2.cvtColor(screenshot, cv2.COLOR_BGR2GRAY)
-    template_gray = cv2.cvtColor(template, cv2.COLOR_BGR2GRAY)
-
-    res = cv2.matchTemplate(screenshot_gray, template_gray, cv2.TM_CCOEFF_NORMED)
-    min_val, max_val, min_loc, max_loc = cv2.minMaxLoc(res)
-    print(f"Max confidence: {max_val}")
-
-    threshold = 0.5  # Adjust if necessary
-
-    if max_val >= threshold:
-        top_left = max_loc
-        h, w = template_gray.shape
-        bottom_right = (top_left[0] + w, top_left[1] + h)
-        cv2.rectangle(screenshot, top_left, bottom_right, (0, 255, 0), 2)
-        cv2.imshow("Identifications", screenshot)
-        cv2.waitKey(0)
-        cv2.destroyAllWindows()
-    else:
-        print("Template not found")
 
 setupScreen()
-button = getUIElement("exclamation_indicator")
-#print("Confidence that exclamation was found: " + str(button["confidence"]))
-#getScreenshots()
-#clickButton("map_button")
-dailyTasks()
-#if (button["confidence"] > 0.6):
-#attackGolem("purple_golem")
-#    pyautogui.click(button["center"])
