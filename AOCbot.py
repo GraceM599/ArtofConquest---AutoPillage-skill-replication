@@ -1,6 +1,4 @@
 import ctypes
-from operator import truediv
-
 import mss
 import mss.tools
 import win32gui
@@ -11,66 +9,70 @@ import pyautogui
 import time
 import keyboard
 
-
-#fix scaling issues
+#Adjusts scaling
 ctypes.windll.user32.SetProcessDPIAware()
+#Sets up image folder
 os.makedirs("images", exist_ok=True)
 screenshot_path = "images/aoc_image.png"
 template_path = "images/game_screen.png"
-#height to 698
-if not os.path.isfile(template_path):
-    raise Exception(f"Template not found at {template_path}")
 
-hwnd = win32gui.FindWindow(None, "BlueStacks App Player")
-if not hwnd:
-    raise Exception("BlueStacks window not found")
+def setupScreen():
+    """Find and resize BlueStacks window, update global coordinates, save initial screenshot."""
+    if not os.path.isfile(template_path):
+        raise Exception(f"Template not found at {template_path}")
 
-client_left, client_top, client_right, client_bottom = win32gui.GetClientRect(hwnd)
-left_top = win32gui.ClientToScreen(hwnd, (client_left, client_top))
-right_bottom = win32gui.ClientToScreen(hwnd, (client_right, client_bottom))
+    hwnd = win32gui.FindWindow(None, "BlueStacks App Player")
+    if not hwnd:
+        raise Exception("BlueStacks window not found")
 
-global left, top
-left, top= left_top
-right, bottom = right_bottom
-global width
-width = right - left
-global height
-height = bottom - top
-print(f"Window rectangle: left={left}, top={top}, width={width}, height={height}")
+    client_left, client_top, client_right, client_bottom = win32gui.GetClientRect(hwnd)
+    left_top = win32gui.ClientToScreen(hwnd, (client_left, client_top))
+    right_bottom = win32gui.ClientToScreen(hwnd, (client_right, client_bottom))
 
-with mss.mss() as sct:
-    monitor = {"top": top, "left": left, "width": width, "height": height}
-    img = sct.grab(monitor)
-    img_cv2 = np.array(img)
-    mss.tools.to_png(img.rgb, img.size, output=screenshot_path)
+    global left, top
+    left, top= left_top
+    right, bottom = right_bottom
+    global width
+    width = right - left
+    global height
+    height = bottom - top
+    print(f"Window rectangle: left={left}, top={top}, width={width}, height={height}")
+
+    with mss.mss() as sct:
+        monitor = {"top": top, "left": left, "width": width, "height": height}
+        img = sct.grab(monitor)
+        img_cv2 = np.array(img)
+        mss.tools.to_png(img.rgb, img.size, output=screenshot_path)
 
 
-client_rect = win32gui.GetClientRect(hwnd)
-client_width = client_rect[2] - client_rect[0]
-client_height = client_rect[3] - client_rect[1]
-aspect_ratio = client_width / client_height
+    client_rect = win32gui.GetClientRect(hwnd)
+    client_width = client_rect[2] - client_rect[0]
+    client_height = client_rect[3] - client_rect[1]
+    aspect_ratio = client_width / client_height
 
-# Desired client height
-desired_client_height = 698
-desired_client_width = int(desired_client_height * aspect_ratio)
+    # Desired client height
+    desired_client_height = 698
+    desired_client_width = int(desired_client_height * aspect_ratio)
 
-# Convert desired client size to outer window size
-window_rect = win32gui.GetWindowRect(hwnd)
-current_width = window_rect[2] - window_rect[0]
-current_height = window_rect[3] - window_rect[1]
-width_diff = current_width - client_width
-height_diff = current_height - client_height
+    # Convert desired client size to outer window size
+    window_rect = win32gui.GetWindowRect(hwnd)
+    current_width = window_rect[2] - window_rect[0]
+    current_height = window_rect[3] - window_rect[1]
+    width_diff = current_width - client_width
+    height_diff = current_height - client_height
 
-# Final window size
-new_width = desired_client_width + width_diff
-new_height = desired_client_height + height_diff
+    # Final window size
+    new_width = desired_client_width + width_diff
+    new_height = desired_client_height + height_diff
 
-# Move/resize window
-x, y = window_rect[0], window_rect[1]
-win32gui.MoveWindow(hwnd, x, y, new_width, new_height, True)
+    # Move/resize window
+    x, y = window_rect[0], window_rect[1]
+    win32gui.MoveWindow(hwnd, x, y, new_width, new_height, True)
 
-#returns screen information of an element possibly on the image
+
 def getUIElement(element):
+    """returns screen-based information of an element that is possibly in the screenshot_path"""
+
     global template_gray
     img = getScreen()
     template = cv2.imread("images/" + element + ".png")
@@ -97,6 +99,7 @@ def getUIElement(element):
         "shape": (w, h)
     }
 
+#returns the location of all matched UI elements on screen
 def getAllUIElementsLocation(element):
 
     img = getScreen()
@@ -125,10 +128,10 @@ def getAllUIElementsLocation(element):
     return points
 
 def clickButton(button):
+    """Pauses until the 'button' image is located and clicks it once it is located"""
     button_info = getUIElement(button)
+    time.sleep(.3)
     while(button_info["confidence"] < 0.80):
-        #print(button + str(button_info["confidence"]))
-
         button_info = getUIElement(button)
 
         if(button == "exclamation_indicator" and button_info["confidence"] > 0.35 and not isMoving()):
@@ -140,13 +143,22 @@ def clickButton(button):
 
 
 def getScreen():
+    """Captures the current screen of the bluestacks window and returns it"""
     with mss.mss() as sct:
+        #global top, left, width, height
         monitor = {"top": top, "left": left, "width": width, "height": height}
         img = sct.grab(monitor)
 
     img = np.array(img)
     return img
+
 def isMoving():
+    """
+    While player is in motion the game generates blue dots underneath the character.
+    The function returns True if those blue dots are detectable or the difference between
+    screenshots is significant.
+    Returns False otherwise
+    """
     movementDots = True if getUIElement("moving_dot")["confidence"] > 0.75 else False
     img1 = getScreen()
     time.sleep(0.5)
@@ -156,112 +168,114 @@ def isMoving():
     _, thresh = cv2.threshold(gray, 25, 255, cv2.THRESH_BINARY)
 
     movement = np.sum(thresh) / 255
-    #img1_gray = cv2.cvtColor(img1, cv2.COLOR_BGR2GRAY)
-    #img2_gray = cv2.cvtColor(img2, cv2.COLOR_BGR2GRAY)
+    print(not movementDots, movement)
+    if (not movementDots and movement < 20000):
+        return False
+    return True
 
-    #res = cv2.matchTemplate(img1_gray, img2_gray, cv2.TM_CCOEFF_NORMED)
-    #min_val, max_val, min_loc, max_loc = cv2.minMaxLoc(res)
-    #print(str(max_val))
-    if (movementDots and movement > 100000):
-        # its probably at the top then and character has arrived
-        return True
-    return False
+
+def tentativeClick():
+    """
+    The game locks up ocassionaly, function clicks at the center of the game window
+    to if a possible next target is obscured.
+    :return: None
+    """
+    hwnd = win32gui.FindWindow(None, "BlueStacks App Player")
+    pyautogui.click(win32gui.ClientToScreen(hwnd, (814, 342)))
+
 def clearDungeon():
-    #click map
-    #click dungeon symbol
+    """
+    Carries out the ingame actions to clear a single dungeon
+    :return: bool
+    """
+
     clickButton("map_button")
     clickButton("dungeon_marker")
-
     time.sleep(0.5)
     clickButton("go_button")
-    #click go
-    #wait till find exclamation mark
-    while(getUIElement("exclamation_indicator")["confidence"] <= 0.50):
-        continue
-        if(getUIElement("purple_golem")["confidence"] > 0.90):
-            attackGolem("purple_golem")
-        if (getUIElement("grey_golem")["confidence"] > 0.90):
-            attackGolem("purple_golem")
-    while not isMoving():
-        time.sleep(0.1)
-    clickButton("exclamation_indicator")
-    #click under exclamation mark
+    time.sleep(2)
+
+    while isMoving():
+        print("moving")
+    if getUIElement("exclamation_indicator")["confidence"] > 0.65:
+        clickButton("exclamation_indicator")
+    else:
+
+        tentativeClick()
+        time.sleep(0.2)
+
     clickButton("enter_button")
-    print("Clicked enter button")
-    #click enter
-    #click attack
+    time.sleep(1)
     clickButton("attack_button")
-    #wait till "red fight" button visible
-    #click preset
-    time.sleep(4)
     clickButton("preset_button")
-    #click last
+    clickButton("preset_button")
     clickButton("last_preset_button")
     time.sleep(3)
-    #wait x seconds or until green fight button
-    #Press green fight button
     clickButton("green_fight_button")
-    #Wait till victory screen (where ok button is)
+    time.sleep(2)
     clickButton("green_okay_button")
-    clickButton("green_okay_button")
-    while(getUIElement("castle_button")["confidence"] < 0.8):
+    while(getUIElement("green_okay_button")["confidence"] > 0.7):
+        time.sleep(3)
         clickButton("green_okay_button")
 
-    #press green okay
-    #press orange okay
-    #press blue okay
-    #press green okay
+
     return True
-    pass
+
 
 def attackGolem(golem_type):
+    """
+    Unused as of now but detects a golem_type golem on the screen
+    (that spawns during a monthly event) and defeats it.
+    :param golem_type: str
+    :return: None
+    """
     clickButton(golem_type)
     clickButton("attack_button")
-    # wait till "red fight" button visible
-    # click preset
     clickButton("preset_button")
     time.sleep(0.3)
-    # click last
     if(getUIElement("last_preset_button")["confidence"] < 0.8):
         clickButton("preset_button")
     clickButton("last_preset_button")
     time.sleep(3)
-    # wait x seconds or until green fight button
-    # Press green fight button
     clickButton("green_fight_button")
     clickButton("green_fight_button")
-
-    # Wait till victory screen (where ok button is)
     while (getUIElement("castle_button")["confidence"] < 0.8):
         clickButton("green_okay_button")
 
 def deliverWagon():
     clickButton("map_button")
     clickButton("resource_marker")
-
     time.sleep(0.5)
     clickButton("go_button")
-    while (getUIElement("exclamation_indicator")["confidence"] <= 0.50):
+    while isMoving():
         continue
-        if (getUIElement("purple_golem")["confidence"] > 0.90):
-            attackGolem("purple_golem")
-        if (getUIElement("grey_golem")["confidence"] > 0.90):
-            attackGolem("purple_golem")
-
-    clickButton("exclamation_indicator")
+    time.sleep(1)
+    if getUIElement("exclamation_indicator")["confidence"] > 0.65:
+        clickButton("exclamation_indicator")
+    else:
+        tentativeClick()
+        time.sleep(0.2)
     clickButton("deliver_button")
-def dailyTasks():
-    for i in range (4):
 
-        clearDungeon()
-        time.sleep(1)
+def autoPillage():
+    """
+    Replicates the auto-pillage skill granted by Lifetime Patron in the game.
+    Set to complete the required number for daily tasks.
+    :return: None
+    """
     for i in range (4):
         deliverWagon()
         time.sleep(1)
-    #transmute
-    #tower challenge
-    #claim tasks
+    for i in range (4):
+        clearDungeon()
+        time.sleep(1)
 
+
+def farmGolems():
+    if (getUIElement("purple_golem")["confidence"] > 0.90):
+        attackGolem("purple_golem")
+    if (getUIElement("grey_golem")["confidence"] > 0.90):
+        attackGolem("purple_golem")
 #with mss.mss() as sct:
 #    monitor = {"top": top, "left": left, "width": width, "height": height}
 #    count = 0
@@ -311,9 +325,9 @@ def tester():
     else:
         print("Template not found")
 
+setupScreen()
 button = getUIElement("exclamation_indicator")
 #print("Confidence that exclamation was found: " + str(button["confidence"]))
-
 #getScreenshots()
 #clickButton("map_button")
 dailyTasks()
