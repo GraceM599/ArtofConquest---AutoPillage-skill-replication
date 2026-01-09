@@ -1,6 +1,6 @@
 
 #### Overview
-The AutoPillage skill replicator is a Python bot that uses OpenCV to replicate the capabilities of the Auto Pillage skill obtained by purchasing lifetime patron. It leverages:
+The AutoPillage skill replicator is a Python bot that uses OpenCV and pyautogui to replicate the capabilities of the Auto Pillage skill obtained by purchasing lifetime patron. It leverages:
   - Screen capture of a possibly scaled BlueStacks window
   - Template matching to exclamation marks above unused dungeons/resources with OpenCV.
   - Automation of mouse clicks using `pyautogui`
