@@ -1,11 +1,11 @@
 
 #### Overview
 The AutoPillage skill replicator is a Python bot that uses OpenCV to replicate the capabilities of the Auto Pillage skill obtained by purchasing lifetime patron. It leverages:
-  - Screen capture of a BlueStacks window
-  - Template matching to exclamation marks above unused dungeons/resources.
-  - Automation of mouse clicks
+  - Screen capture of a possibly scaled BlueStacks window
+  - Template matching to exclamation marks above unused dungeons/resources with OpenCV.
+  - Automation of mouse clicks using `pyautogui`
 
-This lets players without lifetime patron save time in their daily tasks, during events, and saves money across multiple accounts since players can avoid buying lifetime patron for each seperate account.
+This lets players without lifetime patron save time in their daily tasks and during events.
 
 #### Features
 Detects and interacts with game UI elements.
@@ -26,3 +26,7 @@ ArtofConquest---AutoPillage-skill-replication/
 ├── AOCbot.py             # Main script
 ├── requirements.txt      # Python dependencies
 └── README.md               
+
+
+#### Disclaimer
+This project is intended for **educational purposes only**. It demonstrates using OpenCV for simple template matching and pyautogui for automating user input. 
