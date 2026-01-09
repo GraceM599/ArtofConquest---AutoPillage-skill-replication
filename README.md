@@ -30,5 +30,5 @@ ArtofConquest---AutoPillage-skill-replication/
 ```
 
 
-#### Disclaimer
+## Disclaimer
 This project is intended for **educational purposes only**. It demonstrates using OpenCV for simple template matching and pyautogui for automating user input. 
