@@ -17,7 +17,7 @@ Can be used to reduce the focus required during extremly repetative events like 
 Clone the repository, create and activate a virtual enviroment, and install the dpeendencies located in requirements.txt. 
 Ensure BlueStacks is open and visible on the screen (not behind another window) and run the script.
 
-To extend functionality to other enemies/tasks use the 'getScreenshots()' function to collect screenshots of the game to act as templates and the 'tester()' function to test if the template is detectable. 
+To extend functionality to other enemies/tasks use the ```getScreenshots()``` function to collect screenshots of the game to act as templates and the ```tester()``` function to test if the template is detectable. 
 
 
 #### File Structure
